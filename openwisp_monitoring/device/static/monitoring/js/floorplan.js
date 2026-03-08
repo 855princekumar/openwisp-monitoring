@@ -517,6 +517,7 @@
         initialZoom = map.getZoom();
         map.invalidateSize();
         $(".floorplan-loading-spinner").hide();
+
         map.on("fullscreenchange", () => {
           const floorNavigation = $("#floorplan-navigation");
           const zoomSnap = map.options.zoomSnap || 1;
