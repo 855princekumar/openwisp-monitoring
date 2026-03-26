@@ -14,7 +14,6 @@ from ...utils import transaction_on_commit
 from .. import settings as app_settings
 from ..tasks import auto_create_check
 
-# ✅ moved import here (outside loop, top-level safe)
 from openwisp_monitoring.check.models import Check
 
 
