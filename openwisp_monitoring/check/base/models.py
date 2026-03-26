@@ -14,8 +14,6 @@ from ...utils import transaction_on_commit
 from .. import settings as app_settings
 from ..tasks import auto_create_check
 
-from openwisp_monitoring.check.models import Check
-
 
 class AbstractCheck(TimeStampedEditableModel):
     name = models.CharField(max_length=64, db_index=True)
@@ -102,6 +100,7 @@ class AbstractCheck(TimeStampedEditableModel):
 
     def perform_check_delayed(self, duration=0):
         from ..tasks import perform_check
+
         perform_check.apply_async(args=[self.id], countdown=duration)
 
     @classmethod
@@ -121,14 +120,16 @@ def _auto_check_receiver(sender, instance, **kwargs):
 
     ct = ContentType.objects.get_for_model(instance)
 
+    from openwisp_monitoring.check.models import Check
+
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
         if not getattr(app_settings, auto_create_setting):
             continue
-        
+
         if Check.objects.filter(
             content_type=ct,
             object_id=object_id,
-            name=name
+            name=name,
         ).exists():
             continue
 
