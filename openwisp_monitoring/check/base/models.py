@@ -120,6 +120,7 @@ def _auto_check_receiver(sender, instance, **kwargs):
 
     ct = ContentType.objects.get_for_model(instance)
 
+    # safe import to avoid circular dependency
     from openwisp_monitoring.check.models import Check
 
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
@@ -129,7 +130,7 @@ def _auto_check_receiver(sender, instance, **kwargs):
         if Check.objects.filter(
             content_type=ct,
             object_id=object_id,
-            name=name,
+            check_type=class_string,
         ).exists():
             continue
 
