@@ -74,26 +74,20 @@ class AbstractCheck(TimeStampedEditableModel):
         self.check_instance.validate()
 
     def full_clean(self, *args, **kwargs):
-        # The name of the check will be the same as the
-        # 'check_type' chosen by the user when the
-        # name field is empty (useful for CheckInline)
         if not self.name:
             self.name = self.get_check_type_display()
         return super().full_clean(*args, **kwargs)
 
     @cached_property
     def check_class(self):
-        """Returns the check class."""
         return import_string(self.check_type)
 
     @cached_property
     def check_instance(self):
-        """Returns the check class instance."""
         check_class = self.check_class
         return check_class(check=self, params=self.params)
 
     def perform_check(self, store=True):
-        """Initializes check instance and calls the check method."""
         if (
             hasattr(self.content_object, "is_deactivated")
             and self.content_object.is_deactivated()
@@ -106,14 +100,16 @@ class AbstractCheck(TimeStampedEditableModel):
 
     def perform_check_delayed(self, duration=0):
         from ..tasks import perform_check
-
         perform_check.apply_async(args=[self.id], countdown=duration)
 
     @classmethod
-    def auto_create_check_receiver(cls, created, **kwargs):
+    def auto_create_check_receiver(cls, sender, instance, created, **kwargs):
         if not created:
             return
-        transaction_on_commit(lambda: _auto_check_receiver(created=created, **kwargs))
+
+        transaction_on_commit(
+            lambda: _auto_check_receiver(sender=sender, instance=instance)
+        )
 
 
 def _auto_check_receiver(sender, instance, **kwargs):
@@ -121,9 +117,22 @@ def _auto_check_receiver(sender, instance, **kwargs):
     app_label = sender._meta.app_label
     object_id = str(instance.pk)
 
+    ct = ContentType.objects.get_for_model(instance)
+
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
         if not getattr(app_settings, auto_create_setting):
             continue
+
+        
+        from openwisp_monitoring.check.models import Check
+
+        if Check.objects.filter(
+            content_type=ct,
+            object_id=object_id,
+            name=name
+        ).exists():
+            continue
+
         auto_create_check.delay(
             model=model,
             app_label=app_label,
