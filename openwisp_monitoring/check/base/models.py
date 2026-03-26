@@ -124,15 +124,18 @@ def _auto_check_receiver(sender, instance, **kwargs):
 
     ct = ContentType.objects.get_for_model(instance)
 
+    existing_check_types = set(
+        Check.objects.filter(
+            content_type=ct,
+            object_id=object_id,
+        ).values_list("check_type", flat=True)
+    )
+
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
         if not getattr(app_settings, auto_create_setting):
             continue
 
-        if Check.objects.filter(
-            content_type=ct,
-            object_id=object_id,
-            check_type=class_string,
-        ).exists():
+        if class_string in existing_check_types:
             continue
 
         auto_create_check.delay(
