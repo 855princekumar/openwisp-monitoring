@@ -114,14 +114,15 @@ class AbstractCheck(TimeStampedEditableModel):
 
 
 def _auto_check_receiver(sender, instance, **kwargs):
+    from swapper import load_model
+
+    Check = load_model("check", "Check")
+
     model = sender.__name__.lower()
     app_label = sender._meta.app_label
     object_id = str(instance.pk)
 
     ct = ContentType.objects.get_for_model(instance)
-
-    # safe import to avoid circular dependency
-    from openwisp_monitoring.check.models import Check
 
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
         if not getattr(app_settings, auto_create_setting):
