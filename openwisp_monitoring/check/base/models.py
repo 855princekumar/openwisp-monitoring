@@ -14,6 +14,9 @@ from ...utils import transaction_on_commit
 from .. import settings as app_settings
 from ..tasks import auto_create_check
 
+# ✅ moved import here (outside loop, top-level safe)
+from openwisp_monitoring.check.models import Check
+
 
 class AbstractCheck(TimeStampedEditableModel):
     name = models.CharField(max_length=64, db_index=True)
@@ -122,10 +125,7 @@ def _auto_check_receiver(sender, instance, **kwargs):
     for class_string, name, auto_create_setting in app_settings.CHECK_CLASSES:
         if not getattr(app_settings, auto_create_setting):
             continue
-
         
-        from openwisp_monitoring.check.models import Check
-
         if Check.objects.filter(
             content_type=ct,
             object_id=object_id,
