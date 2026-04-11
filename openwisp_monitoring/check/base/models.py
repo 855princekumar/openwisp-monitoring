@@ -124,6 +124,8 @@ def _auto_check_receiver(sender, instance, **kwargs):
 
     ct = ContentType.objects.get_for_model(instance)
 
+    # Prefetch existing check_types for this object to ensure idempotency
+    # This avoids creating duplicate checks when the signal is triggered multiple times
     existing_check_types = set(
         Check.objects.filter(
             content_type=ct,
